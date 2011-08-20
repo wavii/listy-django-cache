@@ -4,7 +4,7 @@ Introduction
 Listy is a deterministic caching mechanism for django projects. It
 will attempt to keep the cache in-sync with the database by updating
 during changes instead of relying on timeouts. As implied by the name,
-As Listy's name implies, it supports looking up lists of objects.
+Listy supports looking up lists of objects.
 
 Features
 ========
@@ -12,7 +12,7 @@ Features
 * Very easy to use
 * Deterministic
 * Fast access to lists of things
-* Packs data for cache into compact form (most small records go from about 1k to 10s of bytes)
+* Packs data into compact form (most small records go from about 1k to 10s of bytes)
 * On-demand deserialization
 * Use of memcache's prepend command for fast adds
 * Keeps track of total, yearly, monthly, weekly, and daily counts for each cached list
@@ -26,18 +26,19 @@ Motivation and Assumptions
 We want to be able to get lists of thousands of items in the database
 without putting too much load on the database server.
 
-We assume:
+Our assumptions going into this project:
 
-* You want to get lists of things from the database :-)
-* The stuff being cached is read often and changed rarely
+* We want to get lists of things from the database :-)
+* The data will be read often and changed rarely
 * When there is a change it needs to be immediately visible on any Django process on any host
-* It's easier to provide a new (constrained) interface than attempt to perfectly replicate Django's filter/update interface
-* Code using this cache and database will only ever go through the cache interface for updates
+* It's easier to provide a new (and constrained) interface than to attempt to perfectly replicate Django's filter/update interface
+* Code using the cached models will only ever go through the cache interface for updates
 * Correctness is more important than performance (knowing full well that it isn't going to be perfect)
 * The model has a normal primary key called 'id'
 * Loose reverse chronological order of the lists is good enough (strict ordering isn't required)
-* Memory for memcache is more constrained than cpu
 * The keys we use to look stuff up with aren't particularly large
+* Memory for memcache is more constrained than cpu
+* Any time we can make a tradeoff where we move work or storage from a centralized host (like the database or cache hosts) to somewhere else (like the webservers) we will take that opportunity even if it increases the number of hosts
 
 Details
 =======
@@ -45,7 +46,7 @@ Details
 This is a cache for models where the main piece of information you are
 getting out of it is whether something is set or not. It will
 absolutely *not* be useful for models that have state that changes
-often that is not looked up by primary key.
+often.
 
 During an update we try to prepend the new value to the list (assuming
 reverse order is what we want) and if it fails because the item isn't
@@ -85,8 +86,8 @@ Using Listy is as simple as replacing the default model manager with a
 CachingManager and providing it with the list of keys that you will
 want to query with.
     
-In this contrived example, I can look up based on pk, just the
-follower, or both the follower and followee:
+In this contrived example, I can look up based on `pk`, just the
+`follower`, or both the `follower` and `followee`:
 
     import listy
     
@@ -105,16 +106,19 @@ follower, or both the follower and followee:
     # Get the users I follow
     Follow.cache.get(follower=me)
 
+    # Get whether I follow you
+    Follow.cache.get(follower=me, follower=you)
+
 Arguments to CachingManager:
 
-* caches -- a list of tuples describing the fields that should be keys into the cache
-* soft_delete_field -- the name of the delete field that can be used to delete objects without actually removing them from the database if this feature is supported by the model (default None)
-* deleted_timestamp_field -- the name of the field which should be set to a datetime when deleting an object (default None)
-* enabled_field -- the name of the field which defines whether an object is enabled or not, this is treated like a delete that cannot be undone under normal circumstances (default None)
-* timestamp_field -- the name of the field that hold the timestamp to be used for the counters (default None)
-* disable_cache -- turn off caching, can be used for debugging (default False)
-* address -- a function that returns the address of the memcache (default 127.0.0.1:11211)
-* filter_out_soft_deletes -- treat soft deletes as true deletes, filter them out when returning lists (default True)
+* `caches` -- a list of tuples describing the fields that should be keys into the cache
+* `soft_delete_field` -- the name of the delete field that can be used to delete objects without actually removing them from the database if this feature is supported by the model (default None)
+* `deleted_timestamp_field` -- the name of the field which should be set to a datetime when deleting an object (default None)
+* `enabled_field` -- the name of the field which defines whether an object is enabled or not, this is treated like a delete that cannot be undone under normal circumstances (default None)
+* `timestamp_field` -- the name of the field that hold the timestamp to be used for the counters (default None)
+* `disable_cache` -- turn off caching, can be used for debugging (default False)
+* `address` -- a function that returns the address of the memcache (default 127.0.0.1:11211)
+* `filter_out_soft_deletes` -- treat soft deletes as true deletes, filter them out when returning lists (default True)
 
 The list of tuples defined by the caches argument is the heart of this
 caching mechanism. Through it we define what lists of objects we want
