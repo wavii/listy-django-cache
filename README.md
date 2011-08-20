@@ -19,7 +19,6 @@ Features
 * Optional per-request object registry
 * Optional support for soft deletes
 
-
 Motivation and Assumptions
 ==========================
 
