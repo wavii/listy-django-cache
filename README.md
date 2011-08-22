@@ -2,9 +2,9 @@ Introduction
 ============
 
 Listy is a deterministic caching mechanism for django projects. It
-will attempt to keep the cache in-sync with the database by updating
-during changes instead of relying on timeouts. As implied by the name,
-Listy supports looking up lists of objects.
+will keep the cache in-sync with the database by updating during
+changes instead of relying on timeouts. As implied by the name, Listy
+supports looking up lists of objects.
 
 Features
 ========
@@ -19,6 +19,51 @@ Features
 * Optional per-request object registry
 * Optional support for soft deletes
 
+Usage
+=====
+
+Using Listy is as simple as replacing the default model manager with a
+CachingManager and providing it with the list of keys that you will
+want to query with.
+    
+In this contrived example, I can look up based on `pk`, just the
+`follower`, or both the `follower` and `followee`:
+
+    import listy
+    
+    class Follow(models.Model):
+        # Configure this cache to support lookup by 'pk' or 'follower'
+        objects = listy.CachingManager([('pk',), ('follower',), ('follower', 'followee')])
+        follower = models.ForeignKey('User', related_name='follows')
+        followee = models.ForeignKey('User', related_name='followers')
+    
+    # Follow someone
+    Follow.cache.add(follower=me, followee=you)
+    
+    # Unfollow someone
+    Follow.cache.delete(follower=me, followee=you)
+    
+    # Get the users I follow
+    Follow.cache.get(follower=me)
+
+    # Get whether I follow you
+    Follow.cache.get(follower=me, follower=you)
+
+Arguments to CachingManager:
+
+* `caches` -- a list of tuples describing the fields that should be keys into the cache
+* `soft_delete_field` -- the name of the delete field that can be used to delete objects without actually removing them from the database if this feature is supported by the model (default None)
+* `deleted_timestamp_field` -- the name of the field which should be set to a datetime when deleting an object (default None)
+* `enabled_field` -- the name of the field which defines whether an object is enabled or not, this is treated like a delete that cannot be undone under normal circumstances (default None)
+* `timestamp_field` -- the name of the field that hold the timestamp to be used for the counters (default None)
+* `disable_cache` -- turn off caching, can be used for debugging (default False)
+* `address` -- a function that returns the address of the memcache (default 127.0.0.1:11211)
+* `filter_out_soft_deletes` -- treat soft deletes as true deletes, filter them out when returning lists (default True)
+
+The list of tuples defined by the caches argument is the heart of this
+caching mechanism. Through it we define what lists of objects we want
+cached and updated, and how we will access those lists.
+
 Motivation and Assumptions
 ==========================
 
@@ -27,7 +72,7 @@ without putting too much load on the database server.
 
 Our assumptions going into this project:
 
-* We want to get lists of things from the database :-)
+* We want to get lists of things from the database
 * The data will be read often and changed rarely
 * When there is a change it needs to be immediately visible on any Django process on any host
 * It's easier to provide a new (and constrained) interface than to attempt to perfectly replicate Django's filter/update interface
@@ -77,51 +122,6 @@ Note that while we don't load everything returned by memcache unless
 it is being used we do get everything from memcache in a list so this
 could be slow if the lists get to large. We should eventually
 implement an on-demand getter for memcache.
-
-Usage
-=====
-
-Using Listy is as simple as replacing the default model manager with a
-CachingManager and providing it with the list of keys that you will
-want to query with.
-    
-In this contrived example, I can look up based on `pk`, just the
-`follower`, or both the `follower` and `followee`:
-
-    import listy
-    
-    class Follow(models.Model):
-        # Configure this cache to support lookup by 'pk' or 'follower'
-        objects = listy.CachingManager([('pk',), ('follower',), ('follower', 'followee')])
-        follower = models.ForeignKey('User', related_name='follows')
-        followee = models.ForeignKey('User', related_name='followers')
-    
-    # Follow someone
-    Follow.cache.add(follower=me, followee=you)
-    
-    # Unfollow someone
-    Follow.cache.delete(follower=me, followee=you)
-    
-    # Get the users I follow
-    Follow.cache.get(follower=me)
-
-    # Get whether I follow you
-    Follow.cache.get(follower=me, follower=you)
-
-Arguments to CachingManager:
-
-* `caches` -- a list of tuples describing the fields that should be keys into the cache
-* `soft_delete_field` -- the name of the delete field that can be used to delete objects without actually removing them from the database if this feature is supported by the model (default None)
-* `deleted_timestamp_field` -- the name of the field which should be set to a datetime when deleting an object (default None)
-* `enabled_field` -- the name of the field which defines whether an object is enabled or not, this is treated like a delete that cannot be undone under normal circumstances (default None)
-* `timestamp_field` -- the name of the field that hold the timestamp to be used for the counters (default None)
-* `disable_cache` -- turn off caching, can be used for debugging (default False)
-* `address` -- a function that returns the address of the memcache (default 127.0.0.1:11211)
-* `filter_out_soft_deletes` -- treat soft deletes as true deletes, filter them out when returning lists (default True)
-
-The list of tuples defined by the caches argument is the heart of this
-caching mechanism. Through it we define what lists of objects we want
-cached and updated, and how we will access those lists.
 
 Dependencies
 ============
