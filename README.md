@@ -12,7 +12,7 @@ Features
 * Very easy to use
 * Deterministic
 * Fast access to lists of things
-* Packs data into compact form (most small records go from about 1k to 10s of bytes)
+* Packs data into compact form (most small records go from about 1k down to 10s of bytes)
 * On-demand deserialization
 * Use of memcache's prepend command for fast adds
 * Keeps track of total, yearly, monthly, weekly, and daily counts for each cached list
