@@ -34,6 +34,7 @@ In this contrived example, I can look up based on `pk`, just the
     class Follow(models.Model):
         # Configure this cache to support lookup by 'pk' or 'follower'
         objects = listy.CachingManager([('pk',), ('follower',), ('follower', 'followee')])
+        created = models.DateTimeField(auto_now_add=True)
         follower = models.ForeignKey('User', related_name='follows')
         followee = models.ForeignKey('User', related_name='followers')
     
