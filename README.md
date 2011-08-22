@@ -19,6 +19,11 @@ Features
 * Optional per-request object registry
 * Optional support for soft deletes
 
+Install
+=======
+
+    % pip install listy-django-cache
+
 Usage
 =====
 
