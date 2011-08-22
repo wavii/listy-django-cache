@@ -6,7 +6,7 @@ except ImportError:
     from setuptools import setup, find_packages
 
 setup(
-    name='django-list-cache',
+    name='listy-django-cache',
     version='0.9.0',
     description='A deterministic caching mechanism for Django',
     long_description='Listy is a deterministic caching mechanism for django projects. It will attempt to keep the cache in-sync with the database by updating during changes instead of relying on timeouts. As implied by the name, Listy supports looking up lists of objects.',
