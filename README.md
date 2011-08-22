@@ -49,6 +49,14 @@ In this contrived example, I can look up based on `pk`, just the
     # Get whether I follow you
     Follow.cache.get(follower=me, follower=you)
 
+    # Get the counts for the users I follow
+    from datetime import date, timedelta
+    from dateutil.rrule import rrule, DAILY, WEEKLY, MONTHLY, YEARLY
+    start, end = date.today() - timedelta(days=100), date.today()
+    Follow.cache.daily_counts(created=rrule(DAILY, dtstart=start, until=end))
+
+You can see a complete set of examples in `test_django_app/caching/tests.py`.
+
 Arguments to CachingManager:
 
 * `caches` -- a list of tuples describing the fields that should be keys into the cache
